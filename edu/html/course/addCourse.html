@@ -132,9 +132,36 @@
 					}
 
 				},
-			
+				//当文件移除触发
 				handleRemove(file, fileList) {
-					
+					var fileName;
+					// indexOf() 判断XX字符串在该字符串中第一次出现的索引位置 如果没有返回-1
+					// this.dialogImageUrl =http://localhost/img/5b7010fe-81f7-48be-bbca-b0de12305e29springBoot课程.jpg   
+					// file.name=  001.mp4
+					if(this.dialogImageUrl.indexOf(file.name)!=-1){
+						fileName=this.dialogImageUrl;
+						//删除回显图片
+						this.dialogImageUrl=''
+					}else{
+						fileName=this.dialogVedioUrl;
+						//删除回显视频
+						this.dialogVedioUrl=''
+					}
+					var params =new URLSearchParams()
+					params.append("fileName",fileName)
+					axios({
+						url:"http://localhost/edu/courses?method=removeFile",
+						data:params,
+						method:"post"
+					}).then(resp=>{
+						if(resp.data.message=='删除图片成功'){
+							this.$message.success(resp.data.message)
+						}else{
+							this.$message.success(resp.data.message)
+						}
+
+					})
+
 				},
 				//上传文件组装参数和发送请求的方法 content:上传的组件
 				myUpload(content) {
@@ -152,6 +179,13 @@
 						data:params
 
 					}).then(resp=>{
+
+						if(resp.data.code==401){
+							this.$message.warning(resp.data.message)
+							//1秒后跳转
+							window.setTimeout("window.location='http://127.0.0.1:5500/edu/html/login.html'",1000)
+							return
+						}
 						if(resp.data.message=='上传图片成功'){
 							this.dialogImageUrl="http://localhost/img/"+resp.data.data
 						}else{
@@ -162,8 +196,44 @@
 					})
 					
 				},
+				//添加课程
 				submitForm(formName) {
 					
+					this.$refs[formName].validate((valid=>{
+
+						if(valid){
+							//组装请求参数
+							var params =new URLSearchParams()
+							params.append("courseName",this.ruleForm.courseName)
+							params.append("descs",this.ruleForm.descs)
+							params.append("courseType",this.ruleForm.courseType)
+							params.append("coursePrice",this.ruleForm.coursePrice)
+							params.append("dialogImageUrl",this.dialogImageUrl)
+							params.append("dialogVedioUrl",this.dialogVedioUrl)
+							//发送请求
+							axios({
+								url:"http://localhost/edu/courses?method=insertCourse",
+								data:params,
+								method:"post"
+							}).then(resp=>{
+
+								if(resp.data.code==200){
+									//消息提示
+									this.$message.success(resp.data.message)
+									//1秒后跳转
+									window.setTimeout("window.location='http://127.0.0.1:5500/edu/html/course/index.html'",1000)
+								}else{
+									//消息提示
+									this.$message.success(resp.data.message)
+								}
+							})
+
+						}else{
+							this.$message.success("请检查表单校验")
+						}
+
+					}))
+
 				}
 
 			}

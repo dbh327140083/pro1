@@ -91,7 +91,7 @@
 				<!--上传-->
 				<el-upload style="margin-left: 25px;" :on-remove="handleRemove" :on-exceed="handleExceed"
 					:http-request="myUpload" class="upload-demo" ref="upload1"
-					action="http://localhost/education/courses?method=uploadFile" :limit="1" :auto-upload="false">
+					action="http://localhost/edu/courses?method=uploadFile" :limit="1" :auto-upload="false">
 					<el-button slot="trigger" size="small" type="primary">选取图片</el-button>
 					<el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(1)">上传到服务器
 					</el-button>
@@ -100,7 +100,7 @@
 
 				<el-upload style="margin-left: 25px;" :on-remove="handleRemove" :on-exceed="handleExceed"
 					:http-request="myUpload" class="upload-demo" ref="upload2"
-					action="http://localhost/education/courses?method=uploadFile" :limit="1" :auto-upload="false">
+					action="http://localhost/edu/courses?method=uploadFile" :limit="1" :auto-upload="false">
 					<el-button slot="trigger" size="small" type="primary">选取视频</el-button>
 					<el-button style="margin-left: 10px;" size="small" type="success" @click="submitUpload(2)">上传到服务器
 					</el-button>
@@ -108,6 +108,9 @@
 
 				<video controls autoplay muted="muted"
 					style="width: 100px;height: 100px;margin-left: 25px;margin-top: 5px;" :src="dialogVedioUrl"></video>
+
+
+
 				<el-form-item label="课程价格" prop="coursePrice">
 					<el-input v-model="ruleForm.coursePrice" style="width: 210px;"></el-input>
 				</el-form-item>
@@ -127,7 +130,7 @@
 		<!--结尾-->
 
 		<!--课程明细对话框-->
-			<el-dialog title="课程明细" :visible.sync="dialogFormVisible2">
+			<el-dialog title="课程明细" :visible.sync="dialogFormVisible2" :close-on-click-modal="false">
 				<el-form ref="ruleForm" :model="ruleForm" label-width="80px">
 					<el-form-item label="课程名称">
 						<el-input v-model="ruleForm.name" style="width: 210px;"></el-input>
@@ -191,7 +194,7 @@
 			totalPage: '',
 			//修改的对话框
 			dialogFormVisible1: false,
-			//详情的对话框
+			//明细的对话框
 			dialogFormVisible2: false,
 			/*文件上传*/
 			dialogImageUrl: '',
@@ -248,48 +251,127 @@
 			handleClose() {
 				
 			},
-		
+			/*修改回显  */
 			handleEdit(index, row) {
-				
+				this.dialogImageUrl ="http://localhost/img/"+row.courseImage
+				this.dialogVedioUrl ="http://localhost/img/"+row.courseVideo
+				this.ruleForm =row
+				this.dialogFormVisible1=true
 			},
-		
-			handleExceed(files, fileList) {
-				
-			},
-			
+			//上传
 			submitUpload(value) {
-				
+				if(value==1){
+					this.$refs.upload1.submit()
+				}else if(value==2){
+					this.$refs.upload2.submit()
+				}else if(value==3){
+					this.$refs.upload3.submit()
+				}
 			},
 		
 			handleRemove(file, fileList) {
 
 			},
-		
+		    //文件上传参数组装
 			myUpload(content) {
+				var params =new FormData()
+				params.append("file",content.file)
+				axios({
+					url:content.action,
+					data:params,
+					method:"post"
+				}).then(resp=>{
 
+					if(resp.data.message=='上传图片成功'){
+						this.dialogImageUrl="http://localhost/img/"+resp.data.data
+					}else{
+						this.ruleForm.url="http://localhost/img/"+resp.data.data
+						this.dialogVedioUrl="http://localhost/img/"+resp.data.data
+					}
+					this.$message.success(resp.data.message)
+				})
 			},
-			
+			//修改课程提交
 			submitForm(formName) {
-				
+				this.$refs[formName].validate((valid=>{
+
+						if(valid){
+							//组装数据   dialogImageUrl:http://localhost/img/xx.jpg
+							var params =new URLSearchParams()
+							params.append("cid",this.ruleForm.cid)
+							params.append("courseName",this.ruleForm.courseName)
+							params.append("descs",this.ruleForm.descs)
+							params.append("courseType",this.ruleForm.courseType)
+							params.append("dialogImageUrl",this.dialogImageUrl)
+							params.append("dialogVedioUrl",this.dialogVedioUrl)
+							params.append("coursePrice",this.ruleForm.coursePrice)
+							params.append("status",this.ruleForm.status)
+
+							//发送请求
+							axios({
+								url:"http://localhost/edu/courses?method=updateCourse",
+								method:"post",
+								data:params
+							}).then(resp=>{
+								
+									if(resp.data.code==200){
+										this.$message.success(resp.data.message)
+										//1秒后跳转到课程页面
+										this.dialogFormVisible1=false
+									}else{
+										this.$message.warning(resp.data.message)
+									}
+							})
+						}else{
+							this.$message.warning("请检查表单项")
+						}
+				}))
 			},
-	
 			handleLook(index, row) {
-			
+				//将当前行数据赋值到表单ruleForm
+				this.ruleForm =row
+				this.ruleForm.cid =row.cid
+				//显示明细对话框
+				this.dialogFormVisible2=true
 			},
-		
-			handleSelectionChange(val) {
-			
+			//当选中某行触发  $("input[name='checkbox']:checked")= val [{选中行对象},{选中行对象},{}]
+			handleSelectionChange(val) { 
+				this.multipleSelection=val
 			},
-		
+			//批量删除
 			delAll() {
-			
+				//this.multipleSelection 存放的所有被选中的复选框对象  key表示 索引  
+				//var ids =""
+				for(key in this.multipleSelection){  
+					//this.multipleSelection[key] 每一个复选框  .cid  当前行课程cid
+				    this.delarr.push(this.multipleSelection[key].cid)
+					//ids+=this.multipleSelection[key].cid+","
+				}
+				//this.delarr 3,4,5
+
+				axios({
+					url:"http://localhost/edu/courses?method=delAll&ids="+this.delarr,
+					method:"post"
+				}).then(resp=>{
+
+					if(resp.data.code==200){
+						this.$message.success(resp.data.message)
+						this.findAll()
+					}else{
+						this.$message.success(resp.data.message)
+					}
+
+				})
 			},
-		
+			/* 切换每页显示条数要执行的函数 */
 			handleSizeChange: function (size) {
-			
+				this.pageSize =size
+				this.findAll()
 			},
+			/* 切换页码要执行的函数 */
 			handleCurrentChange: function (currentPage) {
-			
+				this.currentPage =currentPage
+				this.findAll()
 			},
 		
 			handleRemove(file, fileList) {
@@ -303,12 +385,56 @@
 			handleExceed(files, fileList) {
 				this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
 			},
-		
+			//分页+组合条件查询
 			findAll() {
+				var   params =new URLSearchParams();
+				params.append("currentPage",this.currentPage)
+				params.append("pageSize",this.pageSize)
+				params.append("search",this.search)
+
+				axios({
+					url:"http://localhost/edu/courses?method=findAll",
+					data:params,
+					method:"post"
+				}).then(resp=>{
+					this.tableData=resp.data.list
+					this.currentPage=resp.data.currentPage
+					this.pageSize=resp.data.pageSize
+					this.totalCount=resp.data.totalCount
+					this.totalPage=resp.data.totalPage
+				})
 			
+			},
+			//添加明细
+			detailForm(){
+				//组装参数
+				var params =new URLSearchParams()
+				params.append("name",this.ruleForm.name)
+				params.append("type",this.ruleForm.type)
+				params.append("url",this.ruleForm.url)
+				params.append("start_data",this.ruleForm.start_data)
+				params.append("cid",this.ruleForm.cid)
+
+				axios({
+					url:"http://localhost/edu/courses?method=insertCourseDetail",
+					data:params,
+					method:"post"
+				}).then(resp=>{
+					if(resp.data.code==200){
+						this.$message.success(resp.data.message)
+						//关闭明细对话框
+						this.dialogFormVisible2=false
+					}else{
+						this.$message.success(resp.data.message)
+					}
+				})
+
 			}
 
-		}
+		},
+		created() {
+			this.findAll()
+		},
 	
 	})
 </script>
