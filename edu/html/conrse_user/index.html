@@ -51,7 +51,7 @@
                 <div class="block" align="right">
                     <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
                         :current-page="currentPage" :page-sizes="[3, 4, 5, 5]" :page-size="pageSize"
-                        layout="total, sizes, prev, pager, next, jumper" :total="total">
+                        layout="total, sizes, prev, pager, next, jumper" :total="totalCount">
                     </el-pagination>
                 </div>
             </template>
@@ -115,6 +115,8 @@
             /* 分页参数 */
             tableData: [],
             currentPage: 1,
+            totalCount: '',
+            totalPage: '',
             total: '',
             pageSize: 3,
             /* 条件查询 */
@@ -135,6 +137,7 @@
                 cid: '',
                 course: '',
                 user: '',
+                id:'',
                 courseImage: '',
                 courseVideo: ''
             },
@@ -145,25 +148,44 @@
             handleClose() {
              
             },
-          
+            //修改信息回显
             handleEdit(index, row) {
-               
+               this.ruleForm =row
+               this.ruleForm.id=row.id
+               this.dialogFormVisible1=true
             },
           
             handleDelete(index, row) {
                
             },
-          
+            //查询所有课程
             findAllByPage() {
-                
+                var params =new URLSearchParams()
+                params.append("currentPage",this.currentPage)
+                params.append("pageSize",this.pageSize)
+                //发送请求
+                axios({
+                    url:"http://localhost/edu/c_u?method=findAllByPage",
+                    data:params,
+                    method:"post"
+                }).then(resp=>{
+                    this.currentPage =resp.data.currentPage
+                    this.totalPage =resp.data.totalPage
+                    this.totalCount =resp.data.totalCount
+                    this.pageSize =resp.data.pageSize
+                    this.tableData =resp.data.list
+                })    
+
             },
-         
+            //切换每页显示条数
             handleSizeChange(val) {
-               
+                this.pageSize=val
+                this.findAllByPage()
             },
-          
+            //切换每页想看的页码
             handleCurrentChange(val) {
-          
+                this.currentPage=val
+                this.findAllByPage()
             },
         
             handleSelectionChange(val) {
@@ -173,15 +195,53 @@
             delAll() {
               
             },
-         
+            //查询所有的课程名称
             findAllCourse() {
-             
+                
+                axios.get("http://localhost/edu/courses?method=findCourseNames").then(resp=>{
+                   this.courseNames= resp.data
+                })
 
             },
+            //修改课程
             submitForm(formName) {
-              
+                
+                this.$refs[formName].validate((valid=>{
+
+                    if(valid){
+                        var params =new URLSearchParams()
+                        params.append("id",this.ruleForm.id)
+                        params.append("cid",this.ruleForm.cid)
+                        //发送请求
+                        axios({
+                            url:"http://localhost/edu/c_u?method=updateCourseUser",
+                            data:params,
+                            method:"post"
+                        }).then(resp=>{
+
+                            if(resp.data.code==200){
+                                this.$message.success(resp.data.message)
+                                this.dialogFormVisible1=false
+                                this.findAllByPage()
+                            }else{
+                                this.$message.success(resp.data.message)
+                            }
+
+
+                        })
+
+
+                    }else{
+                        this.$message.warning("表单校验未通过")
+                    }
+
+                }))
             }
-        }
+        },
+        created() {
+            this.findAllByPage()
+            this.findAllCourse()
+        },
         
     })
 </script>

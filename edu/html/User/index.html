@@ -42,7 +42,7 @@
 					</el-table-column>
 					<el-table-column align="left" width="200px">
 						<template slot="header" slot-scope="scope">
-							<el-input v-model="search" size="mini" @blur="handleUserList" placeholder="输入用户名称搜索" />
+							<el-input v-model="search" size="mini" @blur="findByPage" placeholder="输入姓名搜索" />
 						</template>
 					</el-table-column>
 				</el-table>
@@ -172,6 +172,7 @@
 			pageSize: 3,//每页显示的记录数
 			currentPage: 1,//当前页码
 			totalCount: '',//总记录数
+			totalPage:'',
 			/*批量删除*/
 			multipleSelection: [],//批量删除存放选中的复选框
 			delarr: [], //存放删除的数据
@@ -266,43 +267,118 @@
 			handleClose() {
 			
 			},
-		
+			//修改数据回显
 			handleEdit(index, row) {
-	
+				this.ruleForm=row
+				this.dialogVisible=true
+			},
+			//详情数据回显
+			handlelook(index, row) {
+				this.ruleForm=row
+				this.dialogVisible1=true
 
 			},
-		
-			handlelook(index, row) {
-			
-			},
+			//点击复选框被触发
 			handleSelectionChange(val) {
-				
+				//将数组赋值到 vue中data中的属性multipleSelection
+				this.multipleSelection=val
 			},
-			
+			//批量删除方法
 			delAll() {
-		
+				for(key in this.multipleSelection){
+				 	//将从复选框获取到每一个用户id存入数组 delarr中
+					this.delarr.push(this.multipleSelection[key].uid)
+				}
+				//发送axios请求
+				axios({
+					url:"http://localhost/edu/user?method=delAll&ids="+this.delarr,
+					method:"get"
+				}).then(resp=>{
+
+					if(resp.data.code==200){
+						this.$message.success(resp.data.message)
+						this.findByPage()
+					}else{
+						this.$message.success(resp.data.message)
+					}
+
+				})
 			},
-		
+			//切换每页显示条数   size:你想一页展示多少条的条数
 			handleSizeChange: function (size) {
-				
+				this.pageSize =size
+				this.findByPage()
 			},
-			
+			//切换页码  currentPage:你想看那一页
 			handleCurrentChange: function (currentPage) {
-				
+				this.currentPage = currentPage
+				this.findByPage()
 			},
+			//分页方法
 			findByPage() {
-			
+				var params=new URLSearchParams()
+				params.append("currentPage",this.currentPage)
+				params.append("pageSize",this.pageSize)
+				params.append("search",this.search)
+					axios({
+						url:"http://localhost/edu/user?method=findByPage",
+						data:params,
+						method:"post"
+					}).then(resp=>{
+					this.currentPage=resp.data.currentPage
+					this.pageSize=resp.data.pageSize
+					this.totalCount=resp.data.totalCount
+					this.totalPage=resp.data.totalPage
+					this.tableData=resp.data.list
+					})
 			},
-		
+			//修改用户
 			submitForm(formName) {
-			
+				this.$refs[formName].validate((valid=>{
+
+					if(valid){
+						//组装请求参数
+						var params = new URLSearchParams()
+						params.append("uid",this.ruleForm.uid)
+						params.append("username",this.ruleForm.username)
+						params.append("password",this.ruleForm.password)
+						params.append("name",this.ruleForm.name)
+						params.append("phone",this.ruleForm.phone)
+						params.append("status",this.ruleForm.status)
+						params.append("role",this.ruleForm.role)
+						params.append("age",this.ruleForm.age)
+						params.append("sex",this.ruleForm.sex)
+
+						axios.post("http://localhost/edu/user?method=updateUser",params).then(resp=>{
+
+							if(resp.data.code==200){
+								this.$message.success(resp.data.message)
+								//关闭对话框
+								this.dialogVisible=false
+							
+							}else{
+								this.$message.success(resp.data.message)
+							}
+
+						})
+
+
+					}else{
+						this.$message.warning("请检查表单项")
+					}
+
+
+				}))
 			},
 		
 			resetForm(formName) {
 			
 			}
 
-		}
+		},
+		created() {
+			this.findByPage()
+		},
 
 	})
 </script>

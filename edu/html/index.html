@@ -61,7 +61,7 @@
 					<div style="float: right;font-size: 17px;">
 						<el-link type="success" :underline="false" style="font-size: 17px;">返回前台</el-link>
 						欢迎您:<span v-text="user.name"></span>
-						<el-link type="primary" style="font-size: 17px;" :underline="false">退出</el-link>
+						<el-link type="primary" style="font-size: 17px;" :underline="false" @click="loginOut()">退出</el-link>
 					</div>
 				</el-header>
 				<el-container>
@@ -116,6 +116,19 @@
 							this.$message.warning(resp.data.message)
 							//1秒后跳转到登录页面
 							window.setTimeout("window.location='http://127.0.0.1:5500/edu/html/login.html'",1000)
+						}
+					})
+				},
+				loginOut(){
+					axios.get("http://localhost/edu/user?method=loginOut").then(resp=>{
+						
+						if(resp.data.code==200){
+							//消息提示
+							this.$message.warning(resp.data.message)
+							//1秒后跳转到登录页面
+							window.setTimeout("window.location='http://127.0.0.1:5500/edu/html/login.html'",1000)
+						}else{
+							this.$message.warning(resp.data.message)
 						}
 					})
 				}

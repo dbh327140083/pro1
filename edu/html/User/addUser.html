@@ -147,9 +147,48 @@
       handleClose() {
       
       },
- 
+      //添加用户
       submitForm(formName) {
-        
+          this.$refs[formName].validate((valid=>{
+
+            if(valid){
+                //组装参数
+              var params= new URLSearchParams()
+              params.append("username",this.ruleForm.username)
+              params.append("password",this.ruleForm.password)
+              params.append("name",this.ruleForm.name)
+              params.append("phone",this.ruleForm.phone)
+              params.append("status",this.ruleForm.status)
+              params.append("role",this.ruleForm.role)
+              params.append("age",this.ruleForm.age)
+              params.append("sex",this.ruleForm.sex)
+                //发送axios请求
+                axios({
+                  url:"http://localhost/edu/user?method=insertUser",
+                  data:params,
+                  method:"post"
+                }).then(resp=>{
+
+                  if(resp.data.code==401){
+                    this.$message.success(resp.data.message)
+                    //1秒后跳转到展示用户页面
+                    window.setTimeout("window.location='http://127.0.0.1:5500/edu/html/login.html'",1000)
+                    return
+                  }
+
+                  if(resp.data.code==200){
+                    this.$message.success(resp.data.message)
+                    //1秒后跳转到展示用户页面
+                    window.setTimeout("window.location='http://127.0.0.1:5500/edu/html/User/index.html'",1000)
+                  }else{
+                    this.$message.success(resp.data.message)
+                  }
+
+                })
+            }else{
+               this.$message.warning("请检查表单项")
+            }
+          }))
       },
      
       resetForm(formName) {
